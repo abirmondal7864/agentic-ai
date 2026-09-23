@@ -1,10 +1,14 @@
 # Chain-of-thought prompting
-import os 
+
 from dotenv import load_dotenv
 from openai import OpenAI
-import json 
-import time 
+from pydantic import BaseModel, Field
+from typing import Optional
 import requests
+import time
+import json
+import os
+
 
 load_dotenv()
 
@@ -12,6 +16,9 @@ client= OpenAI(
     api_key=os.getenv("GEMINI_API_KEY"),
     base_url="https://generativelanguage.googleapis.com/v1beta/",
 )
+
+def run_command(cmd:str):
+    return os.system(cmd)
 
 def get_weather(city:str):
     url=f"https://wttr.in/{city.lower()}?format=%C+%t"
@@ -21,7 +28,9 @@ def get_weather(city:str):
         return f"The weather in {city} is {response.text}"
     return "Something went wrong"
 
-available_tools={"get_weather":get_weather}
+available_tools={"get_weather":get_weather,
+                 "run_command":run_command
+                }
 
 SYSTEM_PROMPT="""
 You are an expert AI assistant in resolving user queries using chain of thought.
@@ -40,6 +49,7 @@ Output format:
 
 Available Tools:
 - get_weather(city: str): Takes city name as an input string and returns the weather info about the city.
+- run_command(cmd: str): Takes a command string as an input and executes it on the system and returns the output of the command.
 
 Example 1:
 START: Can you solve 2+3*5/10
@@ -61,6 +71,13 @@ PLAN: {"step":"PLAN", "content": "Great, I got the weather info about delhi"}
 OUTPUT: {"step":"OUTPUT", "content":"The current weather in delhi is 20 C with some cloudy sky."}
 """
 print("\n\n\n")
+
+class MyOutputFormat(BaseModel):
+    step: str = Field(...,description="The ID of the step.Example: PLAN,OUTPUT,TOOL etc")
+    content: Optional[str]=Field(None,description="The optionl string content for the step")
+    tool: Optional[str]=Field(None,description="The ID of the tool to call")
+    input: Optional[str]=Field(None,description="The input params for the tool")
+
 message_history=[
     {"role":"system","content":SYSTEM_PROMPT},
 ]
@@ -70,37 +87,38 @@ while True:
     message_history.append({"role":"user","content":user_query})
 
     while True:
-        response=client.chat.completions.create(
+        response=client.chat.completions.parse(
             model="gemini-flash-lite-latest",
-            response_format={"type":"json_object"},
+            response_format=MyOutputFormat,
             messages=message_history
         )
-
         raw_result=response.choices[0].message.content
         message_history.append({"role": "assistant","content":raw_result})
-        try:
-            parsed_result = json.loads(raw_result)
-        except json.JSONDecodeError:
-            first_line = raw_result.strip().split("\n")[0]
-            parsed_result = json.loads(first_line)
+        parsed_result=response.choices[0].message.parsed
 
-        if parsed_result.get("step")== "START":
-            print("🔥", parsed_result.get("content"))
-        elif parsed_result.get("step")== "PLAN":
-            print("🧠", parsed_result.get("content"))
-        elif parsed_result.get("step")== "OUTPUT":
-            print("🤖", parsed_result.get("content"))
+        if parsed_result.step== "START":
+            print("🔥", parsed_result.content)
+        elif parsed_result.step == "PLAN":
+            print("🧠", parsed_result.content)
+        elif parsed_result.step == "OUTPUT":
+            print("🤖", parsed_result.content)
             break
-        elif parsed_result.get("step")== "TOOL":
-            tool_to_call= parsed_result.get("tool")
-            tool_input=parsed_result.get("input")
+        elif parsed_result.step == "TOOL":
+            tool_to_call= parsed_result.tool
+            tool_input=parsed_result.input
             print(f"⚒️Calling Tool: {tool_to_call} with input: {tool_input}")
 
             tool_response= available_tools[tool_to_call](tool_input)
             print(f"⚒️: {tool_to_call} ({tool_input}) ={tool_response}")
-            message_history.append({"role":"developer","content":json.dumps(
-                {"step":"OBSERVE","tool":tool_to_call,"input":tool_input,"output":tool_response}
-            )})
+            message_history.append({
+                "role": "user",
+                "content": json.dumps({
+                    "step": "OBSERVE",
+                    "tool": tool_to_call,
+                    "input": tool_input,
+                    "output": tool_response
+                })
+            })
             continue
 
         message_history.append({"role": "user", "content": "continue with next step"})
