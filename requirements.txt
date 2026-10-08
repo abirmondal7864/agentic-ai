@@ -48,6 +48,10 @@ langchain-openai==1.6.6
 langchain-protocol==0.0.19
 langchain-qdrant==1.1.0
 langchain-text-splitters==1.1.2
+langgraph==1.2.14
+langgraph-checkpoint==4.2.0
+langgraph-prebuilt==1.1.0
+langgraph-sdk==0.4.6
 langsmith==0.14.1
 markdown-it-py==4.2.0
 MarkupSafe==3.0.3
@@ -56,6 +60,7 @@ multidict==6.9.1
 numpy==2.5.3
 openai==3.22.1
 orjson==3.12.0
+ormsgpack==1.12.2
 packaging==26.3
 portalocker==3.2.0
 propcache==0.5.4
@@ -94,7 +99,7 @@ truststore==0.10.4
 typer==0.27.2
 typing-inspection==0.4.4
 typing_extensions==4.16.0
--e git+https://github.com/abirmondal7864/agentic-ai.git@1ef0a916aab777f17ac59be9dd7ae348c3cd636a#egg=udemy_agentic_ai
+-e git+https://github.com/abirmondal7864/agentic-ai.git@ab858369932325ee500cd415404aad35b0753caa#egg=udemy_agentic_ai
 urllib3==2.7.0
 uuid_utils==0.17.1
 uvicorn==0.52.4
