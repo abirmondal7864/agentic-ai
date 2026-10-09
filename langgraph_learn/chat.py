@@ -21,7 +21,7 @@ def chatbot(state:State):
 
 def samplenode(state: State):
     print(f"\n\nInside Sample Node : {state}")
-    return {"messages": [("assistant","Sample message appened")]}
+    return {"messages": [("assistant","Sample message appended")]}
 
 graph_builder=StateGraph(State)
 
