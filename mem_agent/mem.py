@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -40,32 +41,64 @@ config = {
 
 mem_client = Memory.from_config(config)
 
-# 3. Take User Input
-user_query = input("> ")
+USER_ID = "abirmondal"
 
-# 4. Generate response using Gemini
-messages = [
-    types.Content(
-        role="user",
-        parts=[types.Part.from_text(text=user_query)]
+while True:
+    user_query = input("\n> ")
+    if user_query.strip().lower() in ["exit", "quit"]:
+        break
+
+    # 3. Search memories using the filter dictionary
+    search_response = mem_client.search(
+        query=user_query,
+        filters={"user_id": USER_ID}
     )
-]
 
-response = client.models.generate_content(
-    model="gemini-3.6-flash",
-    contents=messages
-)
+    raw_results = (
+        search_response.get("results", [])
+        if isinstance(search_response, dict)
+        else search_response
+    )
 
-ai_response = response.text
-print("AI:", ai_response)
+    memories = [
+        item["memory"]
+        for item in raw_results
+        if isinstance(item, dict) and item.get("memory")
+    ]
 
-# 5. Save conversation into Mem0 (Mem0 uses 'content', not 'text')
-mem_client.add(
-    user_id="abirmondal",
-    messages=[
-        {"role": "user", "content": user_query},
-        {"role": "assistant", "content": ai_response},
-    ],
-)
+    print(f"Found {len(memories)} relevant memories.")
 
-print("Memory has been saved...")
+    # 4. Formulate System Instruction with contextual memory
+    system_instruction = (
+        f"You are a helpful assistant. Use these relevant memories about the user to personalize your answer:\n"
+        f"{json.dumps(memories, indent=2)}"
+        if memories
+        else "You are a helpful assistant."
+    )
+
+    # 5. Generate content using Gemini
+    response = client.models.generate_content(
+        model="gemini-flash-latest",
+        contents=[
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=user_query)]
+            )
+        ],
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction
+        )
+    )
+
+    ai_response = response.text
+    print("\nAI:", ai_response)
+
+    # 6. Save interaction to Mem0
+    mem_client.add(
+        messages=[
+            {"role": "user", "content": user_query},
+            {"role": "assistant", "content": ai_response},
+        ],
+        user_id=USER_ID,
+    )
+    print("Memory updated.")
