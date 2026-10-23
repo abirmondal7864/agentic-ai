@@ -26,7 +26,15 @@ config = {
         "provider": "gemini",
         "config": {
             "api_key": GEMINI_API_KEY,
-            "model": "gemini-flash-latest",
+            "model": "gemini-3.6-flash",
+        },
+    },
+    "graph_store": {
+        "provider": "neo4j",
+        "config": {
+            "uri": os.getenv("NEO_CONNECTION_URI"),
+            "username": os.getenv("NEO_USERNAME"),
+            "password": os.getenv("NEO_PASSWORD"),
         },
     },
     "vector_store": {
@@ -78,7 +86,7 @@ while True:
 
     # 5. Generate content using Gemini
     response = client.models.generate_content(
-        model="gemini-flash-latest",
+        model="gemini-3.6-flash",
         contents=[
             types.Content(
                 role="user",
