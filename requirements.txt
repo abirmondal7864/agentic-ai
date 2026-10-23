@@ -90,11 +90,13 @@ proto-plus==1.28.2
 protobuf==5.29.6
 pyasn1==0.6.4
 pyasn1_modules==0.4.2
+PyAudio==0.2.14
 pycparser==3.0
 pydantic==2.13.5
 pydantic-extra-types==2.11.1
 pydantic-settings==2.15.0
 pydantic_core==2.46.5
+pygame==2.6.1
 Pygments==2.21.0
 pymango==0.1.1
 pymongo==4.18.3
@@ -134,7 +136,7 @@ typer==0.27.2
 types-PyYAML==6.0.12.20260906
 typing-inspection==0.4.4
 typing_extensions==4.16.0
--e git+https://github.com/abirmondal7864/agentic-ai.git@939a5c92cb07baf965989de006ad5e2e590a0ce0#egg=udemy_agentic_ai
+-e git+https://github.com/abirmondal7864/agentic-ai.git@7ec0ac8409d5ea85d94dc236f0ad8788dfbc2a1b#egg=udemy_agentic_ai
 uritemplate==4.2.0
 urllib3==2.7.0
 uuid_utils==0.17.1
