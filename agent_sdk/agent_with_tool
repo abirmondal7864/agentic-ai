@@ -1,0 +1,74 @@
+import os
+import asyncio
+import requests
+from dotenv import load_dotenv
+from google.adk.agents import Agent
+from google.adk.runners import InMemoryRunner
+from google.adk.tools import google_search
+from google.genai import types
+
+load_dotenv()
+
+
+# 1. Plain Python function (No decorator needed in Google ADK)
+def get_weather(city: str) -> str:
+    """Fetch the weather for the given city name.
+
+    Args:
+        city: The city name to fetch the weather for.
+    """
+    url = f"https://wttr.in/{city.lower()}?format=%C+%t"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return f"The weather in {city} is {response.text.strip()}"
+        return "Weather service returned an error"
+    except Exception as e:
+        return f"Failed to fetch weather: {e}"
+
+
+# 2. Define the agent
+hello_agent = Agent(
+    name="hello_world_agent",
+    model="gemini-flash-lite-latest",
+    instruction="You are an agent which greets the user and helps them ans using emojis and in a funny way.",
+    tools=[
+        google_search,  # Built-in ADK hosted search tool
+        get_weather,    # Custom Python function tool
+    ],
+)
+
+
+async def main():
+    # 3. Setup InMemoryRunner & session
+    runner = InMemoryRunner(agent=hello_agent, app_name="greeting_app")
+    session = await runner.session_service.create_session(
+        app_name="greeting_app",
+        user_id="user_1",
+    )
+
+    # 4. Format message
+    user_message = types.Content(
+        role="user",
+        parts=[
+            types.Part.from_text(
+                text="What is on top of the world right now? what is the weather of New York?"
+            )
+        ],
+    )
+
+    # 5. Stream and collect output events
+    async for event in runner.run_async(
+        user_id="user_1",
+        session_id=session.id,
+        new_message=user_message,
+    ):
+        if event.content and event.content.parts:
+            for part in event.content.parts:
+                if part.text:
+                    print(part.text, end="", flush=True)
+    print()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
